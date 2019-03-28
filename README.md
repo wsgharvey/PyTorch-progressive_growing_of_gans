@@ -106,5 +106,3 @@ This code is a modified form of the original code under the [CC BY-NC](https://c
 ```
 
 According the Section 3, I hereby identify [Tero Karras et al. and NVIDIA](https://github.com/tkarras) as the original authors of the material.
-
-
