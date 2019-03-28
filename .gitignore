@@ -1,4 +1,4 @@
-pytorch_classifiers/*
+pytorch_classifiers/*.pt
 __pycache__/*
 *.pyc
 .DS_Store
