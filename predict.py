@@ -31,38 +31,40 @@ parser.add_argument('--cuda', dest='cuda', action='store_true')
 seed = 2809
 use_cuda = False
 
-torch.manual_seed(seed)
+# torch.manual_seed(seed)
 if use_cuda:
     torch.cuda.manual_seed(seed)
 
+
 def run(args):
     global use_cuda
-    
+
     print('Loading Generator')
     model = Generator()
     model.load_state_dict(torch.load(args.weights))
-    
+
     # Generate latent vector
     x = torch.randn(1, 512, 1, 1)
-    
+
     if use_cuda:
         model = model.cuda()
         x = x.cuda()
-    
-    x = Variable(x, volatile=True)
-    
+
+    x = Variable(x)
+
     print('Executing forward pass')
     images = model(x)
-    
+
     if use_cuda:
         images = images.cpu()
-    
+
     images_np = images.data.numpy().transpose(0, 2, 3, 1)
     image_np = scale_image(images_np[0, ...])
-    
+
     print('Output')
     plt.figure()
     plt.imshow(image_np)
+    plt.show(block=True)
 
 
 def main():
@@ -72,11 +74,12 @@ def main():
     if not args.weights:
         print('No PyTorch state dict path privided. Exiting...')
         return
-    
+
     if args.cuda:
         use_cuda = True
 
     run(args)
+
 
 if __name__ == '__main__':
     main()

@@ -57,14 +57,13 @@ class NormUpscaleConvBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, padding):
         super(NormUpscaleConvBlock, self).__init__()
         self.norm = PixelNormLayer()
-        self.up = nn.Upsample(scale_factor=2, mode='nearest')
         self.conv = nn.Conv2d(
             in_channels, out_channels, kernel_size, 1, padding, bias=False)
         self.wscale = WScaleLayer(out_channels)
 
     def forward(self, x):
         x = self.norm(x)
-        x = self.up(x)
+        x = F.interpolate(x, scale_factor=2, mode='nearest')
         x = self.conv(x)
         x = F.leaky_relu(self.wscale(x), negative_slope=0.2)
         return x
