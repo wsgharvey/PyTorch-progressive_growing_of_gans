@@ -21,12 +21,12 @@ class Classifier(nn.Module):
 
         self.from_rgb = nn.Conv2d(3, 64, 1)                   # FromRGB_lod0
         self.conv0 = nn.Conv2d(64, 64, 3)                     # 256x256/Conv0
-        self.conv0down = nn.Conv2d(64, 64, 3, stride=2)       # 256x256/Conv1_down
-        self.conv1 = nn.Conv2d(64, 128, 3)                    # 128x128/Conv0
-        self.conv1down = nn.Conv2d(128, 128, 3, stride=2)     # 128x128/Conv1_down
-        self.conv2 = nn.Conv2d(128, 256, 3)                   # 64x64/Conv0
-        self.conv2down = nn.Conv2d(256, 256, 3, stride=2)     # 64x64/Conv1_down
-        self.conv3 = nn.Conv2d(256, 512, 3)                   # 32x32/Conv0
+        self.conv0down = nn.Conv2d(64, 128, 3, stride=2)       # 256x256/Conv1_down
+        self.conv1 = nn.Conv2d(128, 128, 3)                    # 128x128/Conv0
+        self.conv1down = nn.Conv2d(128, 256, 3, stride=2)     # 128x128/Conv1_down
+        self.conv2 = nn.Conv2d(256, 256, 3)                   # 64x64/Conv0
+        self.conv2down = nn.Conv2d(256, 512, 3, stride=2)     # 64x64/Conv1_down
+        self.conv3 = nn.Conv2d(512, 512, 3)                   # 32x32/Conv0
         self.conv3down = nn.Conv2d(512, 512, 3, stride=2)     # 32x32/Conv1_down
         self.conv4 = nn.Conv2d(512, 512, 3)                   # 16x16/Conv0
         self.conv4down = nn.Conv2d(512, 512, 3, stride=2)     # 16x16/Conv1_down
@@ -57,11 +57,23 @@ class Classifier(nn.Module):
         for own_layer_name, tf_layer_name in layer_names.items():
             own_layer = self._modules[own_layer_name]
             # load bias
-            tf_bias = weights_dict[tf_layer_name+'/bias']
-            own_layer.bias = nn.Parameter(torch.Tensor(tf_bias))
+            tf_bias = torch.Tensor(weights_dict[tf_layer_name+'/bias'])
+            own_layer.bias = nn.Parameter(tf_bias)
             # load weights
-            tf_weights = weights_dict[tf_layer_name+'/weight']
-            own_layer.weights = nn.Parameter(torch.Tensor(tf_weights))
+            tf_weights = torch.Tensor(weights_dict[tf_layer_name+'/weight'])
+            # permute dimensions
+            if 'conv' in own_layer_name or 'rgb' in own_layer_name:
+                tf_weights = tf_weights.permute(3, 2, 0, 1)
+            elif 'dense' in own_layer_name:
+                tf_weights = tf_weights.permute(1, 0)
+            # do scaling dues to equalised learning rate stuff
+            if tf_layer_name == '4x4/Dense1':
+                gain = 1
+            else:
+                gain = torch.sqrt(torch.tensor(2.))
+            tf_weights = tf_weights * gain / tf_weights[0].numel()
+            # apply weight
+            own_layer.weight = nn.Parameter(tf_weights)
 
     def forward(self, x):
         # TODO: I am ignoring minibatch norm stuff - hopefully this is right
